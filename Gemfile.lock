@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    activemodel_object_info (0.1.1)
+    activemodel_object_info (0.1.2)
       activerecord
       activesupport
 
