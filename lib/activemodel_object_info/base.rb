@@ -24,10 +24,11 @@ module ActivemodelObjectInfo
       only_attributes = (options[:only] || []).map(&:to_sym)
       # 要排除的字段
       # 默认不包含 :deleted, :deleted_by 和 :deleted_at 三个字段
+      default_deleted_column = ::Constants::Base::TABLE_COLUMN_DELETE_COLUMN rescue 'deleted'
       default_except_attrs = [
-        ::Constant::Base::TABLE_COLUMN_DELETE_COLUMN,
-        "#{::Constant::Base::TABLE_COLUMN_DELETE_COLUMN}_by",
-        "#{::Constant::Base::TABLE_COLUMN_DELETE_COLUMN}_at",
+        default_deleted_column,
+        "#{default_deleted_column}_by",
+        "#{default_deleted_column}_at",
       ]
       except_attributes = (options[:except] || default_except_attrs).map(&:to_sym)
       # 字段的具体属性设置
@@ -67,24 +68,24 @@ module ActivemodelObjectInfo
         # 赋值。如果有过滤器，优先使用过滤器
         if filter.present?
           result[attribute_name] = case filter
-                                  when ::Proc
-                                    instance_exec(v, &filter)
-                                  when ::Symbol
-                                    __send__(filter)
-                                  else
-                                    filter
-                                  end
+                                   when ::Proc
+                                     instance_exec(v, &filter)
+                                   when ::Symbol
+                                     __send__(filter)
+                                   else
+                                     filter
+                                   end
         # 如果值是时间类别的字段，默认转换为时间日期格式的字符串
         elsif [::Date, ::Time, ::DateTime].any? { |time_class| v.is_a?(time_class) }
           # 时间日期格式设定，优先使用当前字段自定义，否则使用通用自定义，最后使用默认格式
           attribute_format = current_attr_config[:format].present? ? current_attr_config[:format] : options[:datetime_format]
           result[attribute_name] = if attribute_format.to_s == 'standard' # 会被转换为标准时间日期格式
-                                    v
-                                  elsif attribute_format.present? # 按照设定的 format_date 方法的格式
-                                    v.format_date(attribute_format.to_sym)
-                                  else # 默认使用 'yyyy-MM-dd hh:mm:ss' 的格式
-                                    v.format_date(:full)
-                                  end
+                                     v
+                                   elsif attribute_format.present? # 按照设定的 format_date 方法的格式
+                                     v.format_date(attribute_format.to_sym)
+                                   else # 默认使用 'yyyy-MM-dd hh:mm:ss' 的格式
+                                     v.format_date(:full)
+                                   end
         else # 其他值类型默认赋值自己
           result[attribute_name] = v
         end

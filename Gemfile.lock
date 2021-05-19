@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    activemodel_object_info (0.1.0)
+    activemodel_object_info (0.1.1)
       activerecord
       activesupport
 
@@ -20,14 +20,35 @@ GEM
       minitest (~> 5.1)
       tzinfo (~> 1.1)
     arel (9.0.0)
+    ast (2.4.1)
     concurrent-ruby (1.1.5)
     i18n (1.8.2)
       concurrent-ruby (~> 1.0)
     minitest (5.14.0)
+    parallel (1.20.1)
+    parser (3.0.0.0)
+      ast (~> 2.4.1)
+    rainbow (3.0.0)
     rake (10.5.0)
+    regexp_parser (2.0.3)
+    rexml (3.2.4)
+    rubocop (1.7.0)
+      parallel (~> 1.10)
+      parser (>= 2.7.1.5)
+      rainbow (>= 2.2.2, < 4.0)
+      regexp_parser (>= 1.8, < 3.0)
+      rexml
+      rubocop-ast (>= 1.2.0, < 2.0)
+      ruby-progressbar (~> 1.7)
+      unicode-display_width (>= 1.4.0, < 2.0)
+    rubocop-ast (1.4.0)
+      parser (>= 2.7.1.5)
+    ruby-progressbar (1.11.0)
     thread_safe (0.3.6)
     tzinfo (1.2.6)
       thread_safe (~> 0.1)
+    unicode-display_width (1.7.0)
+    yard (0.9.20)
 
 PLATFORMS
   ruby
@@ -36,6 +57,8 @@ DEPENDENCIES
   activemodel_object_info!
   bundler
   rake (~> 10.0)
+  rubocop
+  yard
 
 BUNDLED WITH
    1.17.3

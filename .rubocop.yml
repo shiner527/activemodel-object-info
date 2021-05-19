@@ -1,0 +1,76 @@
+AllCops:
+  Exclude:
+    - 'bin/**/*'
+    - 'examples/**/*'
+  NewCops: enable
+
+# 弱ruby版本的gem，所有目前不需要检测ruby版本
+Gemspec/RequiredRubyVersion:
+  Enabled: false
+
+Layout/EndOfLine:
+  Enabled: false
+Layout/LineLength:
+  Max: 400
+
+Lint/RaiseException:
+  Enabled: true
+Lint/StructNewOverride:
+  Enabled: true
+
+Metrics/AbcSize:
+  Enabled: true
+  Max: 200
+# 块的最大长度，因为API文件中会通过块包含通用路由，所以这里放大一些。
+Metrics/BlockLength:
+  Max: 100
+  Exclude:
+    - 'spec/**/*_spec.rb'
+Metrics/BlockNesting:
+  Max: 5
+Metrics/ClassLength:
+  Max: 600
+Metrics/MethodLength:
+  Enabled: true
+  Max: 100
+# 保持和 Class 的长度一致。对于一些纯设定类仅300行并不够，600行以上需要拆分。
+Metrics/ModuleLength:
+  Max: 600
+Metrics/PerceivedComplexity:
+  Max: 50
+Metrics/CyclomaticComplexity:
+  Max: 50
+
+Naming/PredicateName:
+  Exclude:
+    - 'spec/**/*'
+
+Style/AsciiComments:
+  Enabled: false
+Style/Encoding:
+  Enabled: false
+Style/FormatString:
+  Enabled: false
+Style/FormatStringToken:
+  Enabled: false
+Style/HashEachMethods:
+  Enabled: false
+Style/HashTransformKeys:
+  Enabled: false
+Style/HashTransformValues:
+  Enabled: false
+Style/Next:
+  MinBodyLength: 4
+Style/IfInsideElse:
+  Enabled: false
+Style/NumericLiterals:
+  Enabled: false
+Style/RaiseArgs:
+  Enabled: false
+Style/RescueModifier:
+  Enabled: false
+Style/TrailingCommaInHashLiteral:
+  Enabled: true
+  EnforcedStyleForMultiline: consistent_comma
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: consistent_comma
