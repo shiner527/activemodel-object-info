@@ -19,6 +19,8 @@ module ActivemodelObjectInfo
     #
     def instance_info(**options)
       # puts "ARGS: #{args}, OPTIONS: #{options}"
+      # 参考默认的 options
+      options = "#{self.class}::INSTANCE_INFO".safe_constantize || {} if options.blank?
       result = {}
       # 仅包含的字段
       only_attributes = (options[:only] || []).map(&:to_sym)
