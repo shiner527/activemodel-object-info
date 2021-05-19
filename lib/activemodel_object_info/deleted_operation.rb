@@ -23,8 +23,6 @@ module ActivemodelObjectInfo
 
         # 必须要传递操作的用户ID信息
         raise ArgumentError, 'Must give user id!' if options[:user_id].blank?
-        # 必须给出删除字段的名称
-        raise ArgumentError, 'Must give deleted field name!' if options[:deleted_field].blank?
 
         # 获取更新人字段，删除人字段
         updated_by_field = (options[:updated_by_field] || "#{::Constants::Base::TABLE_COLUMN_UPDATED_COLUMN}_by").to_sym
