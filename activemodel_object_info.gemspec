@@ -3,7 +3,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'activemodel_object_info/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'activemodel-object-info'
+  spec.name          = 'activemodel_object_info'
   spec.version       = ActivemodelObjectInfo::Version::VERSION
   spec.authors       = ['shiner']
   spec.email         = ['shiner527@hotmail.com']
