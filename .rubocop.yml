@@ -3,6 +3,7 @@ AllCops:
     - 'bin/**/*'
     - 'examples/**/*'
   NewCops: enable
+  SuggestExtensions: false
 
 # 弱ruby版本的gem，所有目前不需要检测ruby版本
 Gemspec/RequiredRubyVersion:

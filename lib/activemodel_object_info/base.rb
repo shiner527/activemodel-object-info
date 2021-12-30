@@ -7,6 +7,21 @@ module ActivemodelObjectInfo
   # @author shiner527 <shiner527@hotmail.com>
   #
   module Base
+    # ===== 常量定义 =====
+
+    # 满格式
+    DATETIME_FULL = '%Y-%m-%d %H:%M:%S'
+    # 截止到分
+    DATETIME_MIN = '%Y-%m-%d %H:%M'
+    # 仅日期
+    DATETIME_DATE = '%Y-%m-%d'
+    # 仅年月
+    DATETIME_MONTH = '%Y-%m'
+    # 仅年份
+    DATETIME_YEAR = '%Y'
+
+    # ===== 方法定义 =====
+
     #
     # 对象信息输出。主要返回给前端一个可用的散列（会被转化为JSON格式）格式的信息并传递给前端。
     #
@@ -83,10 +98,15 @@ module ActivemodelObjectInfo
           attribute_format = current_attr_config[:format].present? ? current_attr_config[:format] : options[:datetime_format]
           result[attribute_name] = if attribute_format.to_s == 'standard' # 会被转换为标准时间日期格式
                                      v
-                                   elsif attribute_format.present? # 按照设定的 format_date 方法的格式
-                                     v.format_date(attribute_format.to_sym)
+                                   elsif attribute_format.present? # 按照设定时间日期方法的格式
+                                     # 旧有格式匹配支持
+                                     if %i[full min date month year].include?(attribute_format.to_sym)
+                                       v.strftime("::#{self.class}::DATETIME_#{attribute_format.to_s.upcase}".constantize)
+                                     else # 否则认为直接传递的是 strftime 支持的自定义格式
+                                       v.strftime(attribute_format)
+                                     end
                                    else # 默认使用 'yyyy-MM-dd hh:mm:ss' 的格式
-                                     v.format_date(:full)
+                                     v.strftime(DATETIME_FULL)
                                    end
         else # 其他值类型默认赋值自己
           result[attribute_name] = v

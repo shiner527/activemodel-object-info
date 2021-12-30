@@ -64,22 +64,15 @@ module ActivemodelObjectInfo
     #
     # @param [Symbol, String] operations 对应的操作。默认会给出 +:created+ 、 +:updated+ 和 +:deleted+ 三个操作名。
     #  如果参数中的给出操作名含有 +:deleted+ 或者 +'deleted'+ 时，还会生成默认名称为 <b>deleted</b> 整形数字段，用来标识当前记录是否被删除。
-    #  这里该字段的名称由常量 {Constants::Base::TABLE_COLUMN_DELETE_COLUMN} 设定。
     #  默认值为可用的记录标记值。由常量 {Constants::Base::TABLE_COLUMN_DELETE_DEFAULT} 设定。
     #
     def generate_operations(*operations)
       # puts "generate_operations(#{operations})"
       action_fields = operations
       # 默认只有创建、更新和删除相关的字段
-      if action_fields.empty?
-        action_fields = [
-          ::Constants::Base::TABLE_COLUMN_CREATED_COLUMN,
-          ::Constants::Base::TABLE_COLUMN_UPDATED_COLUMN,
-          ::Constants::Base::TABLE_COLUMN_DELETE_COLUMN,
-        ]
-      end
+      action_fields = %w[created updated deleted] if action_fields.empty?
       action_fields.each do |operation|
-        column(::Constants::Base::TABLE_COLUMN_DELETE_COLUMN, :integer, default: ::Constants::Base::TABLE_COLUMN_DELETE_DEFAULT, comment: '删除标记') if operation.to_sym == :deleted
+        column(operation.to_s, :integer, default: 0, comment: '删除标记') if operation.to_sym == :deleted
         operation_columns(operation)
       end
     end
