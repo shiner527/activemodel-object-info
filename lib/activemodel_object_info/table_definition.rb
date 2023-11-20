@@ -3,6 +3,7 @@
 module ActivemodelObjectInfo
   #
   # 重新扩展一些方法，用来方便在创建迁移文件的时候进行一些通用类的设定。
+  # 从 @version 0.3.0 开始支持了自动创建的时间戳字段增加索引
   #
   # @author shiner527 <shiner527@hotmail.com>
   #
@@ -54,7 +55,7 @@ module ActivemodelObjectInfo
         # 如果要生成操作时间戳信息
         if with_timestamp
           timestamp_column_name = timestamp_prefix.to_s + field.to_s + timestamp_suffix.to_s
-          column(timestamp_column_name, :datetime, comment: '操作时间戳') if timestamp_column_name.present?
+          column(timestamp_column_name, :datetime, index: true, comment: '操作时间戳') if timestamp_column_name.present?
         end
       end
     end
