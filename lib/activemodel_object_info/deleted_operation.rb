@@ -18,7 +18,7 @@ module ActivemodelObjectInfo
       # 如果定义了删除标记字段则默认搜索自动排除该内容
       default_scope do
         _current_model = try(:name).to_s.safe_constantize
-        where(deleted_field.to_sym => deleted_value_valid) if _current_model.method_defined?(deleted_field)
+        where(deleted_field.to_sym => deleted_value_valid) if _current_model.has_attribute?(deleted_field)
       end
 
       # 通用的删除过程
