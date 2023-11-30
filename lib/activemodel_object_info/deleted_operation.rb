@@ -15,7 +15,8 @@ module ActivemodelObjectInfo
       deleted_field = 'deleted'
       deleted_value_valid = 0
       deleted_value_invalid = 1
-      default_scope { where(deleted_field.to_sym => deleted_value_valid) }
+      # 如果定义了删除标记字段则默认搜索自动排除该内容
+      default_scope { where(deleted_field.to_sym => deleted_value_valid) } if defined_method?(deleted_field)
 
       # 通用的删除过程
       define_method(:delete_block) do |**options|
@@ -40,6 +41,8 @@ module ActivemodelObjectInfo
       # 定义删除方法，但是不覆盖 ActiveRecord 的同名方法。
       define_method(:soft_delete) do |**options|
         opts = options.deep_symbolize_keys
+        # 如果没有定义删除标记字段则不执行
+        return unless respond_to?(deleted_field)
         delete_block(**opts)
         # 根据设置决定是否刷更新时间
         save(touch: opts[:refresh_updated])
@@ -48,6 +51,7 @@ module ActivemodelObjectInfo
       # 定义删除方法，区别为最终调用 save! 方法更新数据，所以遇到异常会抛出异常
       define_method(:soft_delete!) do |**options|
         opts = options.deep_symbolize_keys
+        return unless respond_to?(deleted_field)
         delete_block(**opts)
         # 根据设置决定是否刷更新时间
         save!(touch: opts[:refresh_updated])
