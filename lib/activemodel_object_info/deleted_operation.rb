@@ -12,11 +12,11 @@ module ActivemodelObjectInfo
     # 当被 include 关键字引入后的处理
     included do |_|
       # 定义好默认的删除查询语句
-      deleted_field = 'deleted'
-      deleted_value_valid = 0
-      deleted_value_invalid = 1
+      deleted_field = const_defined?(:DELETED_FIELD) ? DELETED_FIELD : 'deleted'
+      deleted_value_valid = const_defined?(:DELETED_VALID_VALUE) ? DELETED_VALID_VALUE : 0
+      deleted_value_invalid = const_defined?(:DELETED_INVALID_VALUE) ? DELETED_INVALID_VALUE : 1
       # 如果定义了删除标记字段则默认搜索自动排除该内容
-      default_scope { where(deleted_field.to_sym => deleted_value_valid) } if defined_method?(deleted_field)
+      default_scope { where(deleted_field.to_sym => deleted_value_valid) }
 
       # 通用的删除过程
       define_method(:delete_block) do |**options|
