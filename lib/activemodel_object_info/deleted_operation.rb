@@ -16,7 +16,10 @@ module ActivemodelObjectInfo
       deleted_value_valid = const_defined?(:DELETED_VALID_VALUE) ? DELETED_VALID_VALUE : 0
       deleted_value_invalid = const_defined?(:DELETED_INVALID_VALUE) ? DELETED_INVALID_VALUE : 1
       # 如果定义了删除标记字段则默认搜索自动排除该内容
-      default_scope { where(deleted_field.to_sym => deleted_value_valid) }
+      default_scope do
+        _current_model = try(:name).to_s.safe_constantize
+        where(deleted_field.to_sym => deleted_value_valid) if _current_model.method_defined?(deleted_field)
+      end
 
       # 通用的删除过程
       define_method(:delete_block) do |**options|
