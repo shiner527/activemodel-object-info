@@ -60,6 +60,9 @@ RSpec.describe ::ActivemodelObjectInfo::TestDeletedOperation do
 
   # 检验混入
   describe '.include' do
+    # 验证场景：模块 include 到宿主类时
+    # 核心功能点：验证 `included` 钩子是否成功执行并注入了预期的方法和作用域
+    # 预期结果：类方法 default_scope 被调用，实例获得了 delete_block、soft_delete、soft_delete! 方法
     it 'included succesfully' do
       expect(described_class.default_scope_created).to eq(true)
       obj
@@ -71,6 +74,9 @@ RSpec.describe ::ActivemodelObjectInfo::TestDeletedOperation do
 
   # 检测删除模块
   describe '#soft_delete' do
+    # 验证场景：正常执行软删除
+    # 核心功能点：必须传入 user_id，默认使用 save(touch: nil)
+    # 预期结果：审计字段 deleted_at, deleted_by 被赋值，deleted 标记字段被置为 1，底层调用 save
     it 'normal call with user id' do
       obj.soft_delete(user_id: 1234)
       expect(obj.deleted_arguments).to be_an_instance_of(::Hash)
@@ -81,6 +87,9 @@ RSpec.describe ::ActivemodelObjectInfo::TestDeletedOperation do
       expect(obj.deleted).to eq(1)
     end
 
+    # 验证场景：显式禁止刷新 updated_at 时间
+    # 核心功能点：传入 refresh_updated: false 时
+    # 预期结果：updated_by 不变，updated_at 不会被刷新，save 接收 touch: false
     it 'disallow refresh updated explicitly' do
       obj.soft_delete(user_id: 1234, refresh_updated: false)
       expect(obj.deleted_arguments).to be_an_instance_of(::Hash)
@@ -94,6 +103,9 @@ RSpec.describe ::ActivemodelObjectInfo::TestDeletedOperation do
       expect(obj.updated_at).to be < obj.deleted_at
     end
 
+    # 验证场景：显式要求刷新 updated_at 时间
+    # 核心功能点：传入 refresh_updated: true 时
+    # 预期结果：除了删除字段外，updated_by 会被设为 user_id，updated_at 时间更新，save 接收 touch: true
     it 'allow refresh updated' do
       old_updated_at = obj.updated_at
       obj.soft_delete(user_id: 1234, refresh_updated: true)
@@ -108,6 +120,9 @@ RSpec.describe ::ActivemodelObjectInfo::TestDeletedOperation do
       expect(obj.updated_at).to be > old_updated_at
     end
 
+    # 验证场景：宿主类缺少审计字段时执行软删除
+    # 核心功能点：验证 respond_to? 安全判断，防止因缺少 deleted_by, deleted_at 字段导致报错
+    # 预期结果：依然能正常执行软删除流程并调用 save(touch: true)
     it 'no fields of deleted operator and timestamps' do
       inst = ::ActivemodelObjectInfo::TestDeletedOperationChild.new
       inst.updated_at = Time.now
@@ -120,6 +135,9 @@ RSpec.describe ::ActivemodelObjectInfo::TestDeletedOperation do
       expect(inst.updated_at).to be > old_updated_at
     end
 
+    # 验证场景：调用软删除未传入 user_id
+    # 核心功能点：验证强制审计参数 user_id 的限制
+    # 预期结果：抛出 ArgumentError 'Must give user id!'
     it 'no user id' do
       expect { obj.soft_delete }.to raise_error do |error|
         expect(error).to be_an_instance_of(::ArgumentError)
@@ -130,6 +148,9 @@ RSpec.describe ::ActivemodelObjectInfo::TestDeletedOperation do
 
   # 检测强制删除模块
   describe '#soft_delete!' do
+    # 验证场景：使用严格模式 soft_delete! 进行软删除
+    # 核心功能点：底层调用的持久化方法必须是 save!
+    # 预期结果：其他字段设置与 soft_delete 一致，但持久化调用变为 save!
     it 'call with correct arguments' do
       obj.soft_delete!(user_id: 1234)
       expect(obj.deleted_arguments).to be_an_instance_of(::Hash)

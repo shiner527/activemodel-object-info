@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    activemodel_object_info (0.2.0)
+    activemodel_object_info (0.4.0)
       activesupport
 
 GEM
