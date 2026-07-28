@@ -1,43 +1,173 @@
 # Activemodel::Object::Info
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/activemodel/object/info`. To experiment with that code, run `bin/console` for an interactive prompt.
+[English](README.md) | [中文文档](README.zh-CN.md)
 
-TODO: Delete this and the text above, and describe your gem
+**Activemodel::Object::Info** is a Ruby Gem designed to extend `ActiveModel` and `ActiveRecord`. It provides an elegant and standardized way to handle common business requirements such as API data formatting, audit trails generation in database migrations, and soft-delete capabilities.
+
+## Table of Contents
+
+- [Features](#features)
+- [Applicable Scenarios](#applicable-scenarios)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [1. Data Formatting (Base)](#1-data-formatting-base)
+  - [2. Migration Macros (TableDefinition)](#2-migration-macros-tabledefinition)
+  - [3. Soft Delete (DeletedOperation)](#3-soft-delete-deletedoperation)
+- [Development & Testing](#development--testing)
+- [License](#license)
+
+## Features
+
+1. **Model Data Formatting (`Base`)**: Safely and flexibly format `ActiveRecord` instances into Hashes (JSON ready) with whitelisting, blacklisting, aliasing, and custom formatting.
+2. **Database Migration Macros (`TableDefinition`)**: One-click generation of audit fields (e.g., `created_by`, `updated_by`, `deleted_by`) and their corresponding timestamps.
+3. **Soft Delete (`DeletedOperation`)**: Standardized soft-delete implementation using an integer flag, coupled with automatic `default_scope` injection and audit trail recording.
+
+## Applicable Scenarios
+
+- **RESTful API Development**: When you need a unified and configurable way to serialize ActiveRecord models into JSON responses, avoiding sensitive data leakage.
+- **Enterprise / B2B Systems**: When strict data audit trails are required (tracking exactly *who* performed the creation, update, or deletion and *when*).
+- **Data Retention Requirements**: Systems that prohibit hard deletion (destroy) and require records to be marked as deleted (Soft Delete) instead.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'activemodel-object-info'
+gem 'activemodel-object-info', '~> 0.4.0'
 ```
 
 And then execute:
 
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install activemodel-object-info
+```bash
+$ bundle install
+```
 
 ## Usage
 
-TODO: Write usage instructions here
+### 1. Data Formatting (Base)
 
-## Development
+The `ActivemodelObjectInfo::Base` module adds the `instance_info` method to your models. It allows you to output formatted hashes based on predefined or runtime configurations.
 
-After checking out the repo, run `bin/setup` to install dependencies. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+**Setup in Model:**
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+```ruby
+class User < ApplicationRecord
+  include ActivemodelObjectInfo::Base
 
-## Contributing
+  # Define default output configuration
+  INSTANCE_INFO = {
+    only: [:id, :name, :status, :created_at],
+    attributes: [
+      :id,
+      { name: :name, as: :user_name }, # Aliasing
+      { name: :status, filter: ->(v) { v == 1 ? 'Active' : 'Inactive' } }, # Custom lambda filter
+      { name: :created_at, format: :date }, # Date formatting ('%Y-%m-%d')
+      { name: :virtual_field, type: :abstract, filter: ->(*) { "#{id}-#{name}" } } # Virtual field
+    ]
+  }.freeze
+end
+```
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/activemodel-object-info. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+**Usage:**
+
+```ruby
+user = User.first
+
+# Use the default INSTANCE_INFO constant
+user.instance_info 
+# => { id: 1, user_name: "John", status: "Active", created_at: "2026-07-28", virtual_field: "1-John" }
+
+# Override at runtime (Supports Ruby 2.x Hash and Ruby 3.x Keyword Arguments)
+user.instance_info(only: [:id, :name])
+# => { id: 1, name: "John" }
+```
+
+### 2. Migration Macros (TableDefinition)
+
+The `ActivemodelObjectInfo::TableDefinition` module extends ActiveRecord's migration capabilities to generate audit fields effortlessly.
+
+**Setup:**
+This is usually loaded automatically, but you can explicitly extend it if needed in your initializers.
+
+**Usage in Migrations:**
+
+```ruby
+class CreateUsers < ActiveRecord::Migration[6.1]
+  def change
+    create_table :users do |t|
+      t.string :name
+      
+      # Generates full audit suite:
+      # created_by, created_at, updated_by, updated_at, deleted(int), deleted_by, deleted_at
+      t.generate_operations
+      
+      # Or generate specific custom audit fields:
+      # Generates: audit_by (bigint), audit_at (datetime)
+      t.operation_columns(:audit)
+      
+      # Generates: my_review_user (bigint), my_review_time (datetime)
+      t.operation_columns(:review, operator_prefix: 'my_', operator_suffix: '_user', timestamp_suffix: '_time')
+    end
+  end
+end
+```
+
+### 3. Soft Delete (DeletedOperation)
+
+The `ActivemodelObjectInfo::DeletedOperation` module provides an out-of-the-box soft deletion feature that works perfectly with the fields generated by `TableDefinition`.
+
+**Setup in Model:**
+
+```ruby
+class User < ApplicationRecord
+  include ActivemodelObjectInfo::DeletedOperation
+  
+  # Optional: Override default column names and values if your database uses different conventions
+  # DELETED_FIELD = 'is_deleted'
+  # DELETED_VALID_VALUE = false
+  # DELETED_INVALID_VALUE = true
+end
+```
+
+**Usage:**
+
+```ruby
+# 1. Automatic Scope: 
+# The module automatically injects a `default_scope` to hide deleted records.
+User.all # => SELECT * FROM users WHERE deleted = 0
+
+# 2. Perform Soft Delete:
+user = User.find(1)
+
+# You MUST provide the `user_id` of the operator performing the deletion
+user.soft_delete(user_id: current_user.id)
+# This will:
+# - Set `deleted` to 1
+# - Set `deleted_by` to current_user.id
+# - Set `deleted_at` to Time.now
+# - Call `save`
+
+# 3. Soft Delete and refresh updated_at:
+user.soft_delete(user_id: current_user.id, refresh_updated: true)
+
+# 4. Strict Soft Delete (raises exception on failure):
+user.soft_delete!(user_id: current_user.id)
+```
+
+## Development & Testing
+
+After checking out the repo, run `bin/setup` to install dependencies.
+
+To run tests:
+```bash
+$ bundle exec rspec
+```
+
+To run code style checks:
+```bash
+$ bundle exec rubocop
+```
 
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
-
-## Code of Conduct
-
-Everyone interacting in the Activemodel::Object::Info project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/activemodel-object-info/blob/master/CODE_OF_CONDUCT.md).
