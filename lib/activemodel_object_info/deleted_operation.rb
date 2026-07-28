@@ -30,6 +30,8 @@ module ActivemodelObjectInfo
   # 核心重要方法：
   # - {#soft_delete}：执行软删除并调用 save 更新数据。
   # - {#soft_delete!}：执行软删除并调用 save! 更新数据（抛出异常）。
+  # - {#restore}：恢复已软删除的数据。
+  # - {#restore!}：强制恢复已软删除的数据（抛出异常）。
   # - {#delete_block}：底层通用的删除字段赋值逻辑块。
   #
   # @author shiner527 <shiner527@hotmail.com>
@@ -94,6 +96,43 @@ module ActivemodelObjectInfo
         return unless respond_to?(deleted_field)
 
         delete_block(**opts)
+
+        save!(touch: opts[:refresh_updated])
+      end
+
+      # 6. 底层的恢复逻辑块 (给实例对象的内存属性赋值，清除删除标记)
+      define_method(:restore_block) do |**options|
+        options[:refresh_updated] = options[:refresh_updated].nil? ? false : options[:refresh_updated]
+
+        updated_by_field = (options[:updated_by_field] || 'updated_by').to_sym
+        deleted_by_field = (options[:deleted_by_field] || 'deleted_by').to_sym
+        deleted_at_field = (options[:deleted_at_field] || 'deleted_at').to_sym
+
+        # 核心：恢复状态为有效标记值
+        __send__("#{deleted_field}=", deleted_value_valid)
+
+        # 审计：清除删除人、删除时间，根据配置选择性地设置恢复操作的更新人
+        __send__("#{deleted_by_field}=", nil) if respond_to?(deleted_by_field)
+        __send__("#{deleted_at_field}=", nil) if respond_to?(deleted_at_field)
+        __send__("#{updated_by_field}=", options[:user_id]) if respond_to?(updated_by_field) && options[:user_id].present? && options[:refresh_updated]
+      end
+
+      # 7. 暴露的常规软删除恢复方法
+      define_method(:restore) do |**options|
+        opts = options.deep_symbolize_keys
+        return unless respond_to?(deleted_field)
+
+        restore_block(**opts)
+
+        save(touch: opts[:refresh_updated])
+      end
+
+      # 8. 暴露的强校验软删除恢复方法
+      define_method(:restore!) do |**options|
+        opts = options.deep_symbolize_keys
+        return unless respond_to?(deleted_field)
+
+        restore_block(**opts)
 
         save!(touch: opts[:refresh_updated])
       end

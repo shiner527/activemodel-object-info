@@ -56,11 +56,13 @@ module ActivemodelObjectInfo
     #
     # @param [Hash] options_hash 设置选项（传统位置参数 Hash），如果传入将被与 keyword_options 合并
     # @param [Hash] keyword_options 设置选项（Ruby 3 关键字参数）
+    # @option keyword_options [Symbol, String] :context 场景上下文名称。如果提供，将优先读取 "INSTANCE_INFO_#{context.upcase}" 常量。
     # @option keyword_options [Array<Symbol, Hash>] :attributes 具体每一项输出的设置数组。每个元素既可以是标识符实例也可以是一个散列实例。
     #  如果是标识符实例，则表示输出该属性。如果是一个散列实例，则按照散列中的设定值去生成对应的内容。
     # @option keyword_options [Array<Symbol>] :only 给出具体可以用来输出的字段属性名数组。
     # @option keyword_options [Array<Symbol>] :except 给出需要被排除输出的字段属性名数组。
     # @option keyword_options [String, Symbol] :datetime_format 全局的时间格式设置。
+    # @option keyword_options [Hash] :includes 需要嵌套输出的关联对象配置（如 { profile: { only: [:avatar] } }）。
     #
     # @return [Hash] 返回的处理过的该对象的信息散列。
     #
@@ -68,8 +70,18 @@ module ActivemodelObjectInfo
       # 合并传统参数与关键字参数，完美兼容 Ruby 2.x 的 Hash 传参和 Ruby 3.x 的 **kwargs 传参
       options = (options_hash || {}).merge(keyword_options)
 
-      # 尝试获取当前类上配置的 INSTANCE_INFO 常量作为默认选项
-      options = "#{self.class}::INSTANCE_INFO".safe_constantize || {} if options.blank?
+      # 尝试获取当前类上配置的常量作为默认选项
+      # 优先级：传入的参数 options > 场景常量 INSTANCE_INFO_#{CONTEXT} > 默认常量 INSTANCE_INFO
+      if options.blank? || (options.keys.map(&:to_sym) == [:context] && options[:context].present?)
+        context_name = options[:context].to_s.upcase
+
+        # 尝试寻找带场景的常量
+        context_constant_name = "#{self.class}::INSTANCE_INFO_#{context_name}"
+        options = context_constant_name.safe_constantize if context_name.present?
+
+        # 如果带场景的常量不存在，或者没传场景，降级寻找默认常量
+        options ||= "#{self.class}::INSTANCE_INFO".safe_constantize || {}
+      end
 
       # 将 options 的 key 转为 symbol，避免传入字符串 key 导致匹配不到
       options = options.deep_symbolize_keys
@@ -159,8 +171,32 @@ module ActivemodelObjectInfo
         end
       end
 
-      # 统一将结果第一层的键名转化为 Symbol 格式并返回
+      # 统一将结果第一层的键名转化为 Symbol 格式
       result.symbolize_keys!
+
+      # 5. 处理嵌套关联对象 (includes)
+      if options[:includes].present? && options[:includes].is_a?(::Hash)
+        options[:includes].each do |association_name, assoc_options|
+          assoc_options = {} unless assoc_options.is_a?(::Hash)
+
+          # 安全获取关联对象
+          next unless respond_to?(association_name)
+
+          assoc_obj = __send__(association_name)
+
+          # 如果关联对象是集合 (例如 has_many)，遍历输出
+          if assoc_obj.respond_to?(:map)
+            result[association_name.to_sym] = assoc_obj.map do |item|
+              item.respond_to?(:instance_info) ? item.instance_info(**assoc_options) : item
+            end
+          # 如果关联对象是单个实例 (例如 belongs_to/has_one)
+          elsif assoc_obj.present?
+            result[association_name.to_sym] = assoc_obj.respond_to?(:instance_info) ? assoc_obj.instance_info(**assoc_options) : assoc_obj
+          end
+        end
+      end
+
+      result
     end
   end
 end

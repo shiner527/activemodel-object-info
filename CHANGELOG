@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-07-28
+### Added
+- **Base**: Added support for nested output of associated objects via `includes` option.
+- **Base**: Added support for contextual formats via `context` parameter and `INSTANCE_INFO_#{CONTEXT}` constants.
+- **DeletedOperation**: Added `restore` and `restore!` methods to undelete soft-deleted records.
+
 ## [0.4.0] - 2026-07-28
 ### Fixed
 - Fixed Ruby 3.x keyword arguments compatibility issue for `instance_info` method, while keeping 100% backward compatibility for existing usages.

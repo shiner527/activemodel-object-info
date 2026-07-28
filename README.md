@@ -65,6 +65,11 @@ class User < ApplicationRecord
       { name: :virtual_field, type: :abstract, filter: ->(*) { "#{id}-#{name}" } } # Virtual field
     ]
   }.freeze
+
+  # Define contextual output configuration (Must be named INSTANCE_INFO_{CONTEXT})
+  INSTANCE_INFO_DETAIL = {
+    only: [:id, :name, :email, :phone]
+  }.freeze
 end
 ```
 
@@ -73,13 +78,31 @@ end
 ```ruby
 user = User.first
 
-# Use the default INSTANCE_INFO constant
+# 1. Use the default INSTANCE_INFO constant
 user.instance_info 
 # => { id: 1, user_name: "John", status: "Active", created_at: "2026-07-28", virtual_field: "1-John" }
 
-# Override at runtime (Supports Ruby 2.x Hash and Ruby 3.x Keyword Arguments)
+# 2. Contextual output: Pass `context` to automatically use the corresponding INSTANCE_INFO_{CONTEXT} constant
+user.instance_info(context: :detail)
+# => { id: 1, name: "John", email: "a@b.com", phone: "12345" }
+
+# 3. Override at runtime (Supports Ruby 2.x Hash and Ruby 3.x Keyword Arguments)
 user.instance_info(only: [:id, :name])
 # => { id: 1, name: "John" }
+
+# 4. Nested output for Associations (includes)
+user.instance_info(
+  only: [:id, :name],
+  includes: {
+    profile: { only: [:avatar_url, :bio] },     # Single instance (has_one / belongs_to)
+    roles: { only: [:role_name] }               # Collection (has_many)
+  }
+)
+# => { 
+#      id: 1, name: "John", 
+#      profile: { avatar_url: "...", bio: "..." }, 
+#      roles: [{ role_name: "admin" }, { role_name: "editor" }] 
+#    }
 ```
 
 ### 2. Migration Macros (TableDefinition)
@@ -152,6 +175,13 @@ user.soft_delete(user_id: current_user.id, refresh_updated: true)
 
 # 4. Strict Soft Delete (raises exception on failure):
 user.soft_delete!(user_id: current_user.id)
+
+# 5. Restore soft-deleted record (Undelete):
+# This resets the `deleted` flag to 0 and clears `deleted_by` and `deleted_at`
+user.restore
+
+# 6. Restore and refresh updated_at with user_id:
+user.restore(user_id: current_user.id, refresh_updated: true)
 ```
 
 ## Development & Testing

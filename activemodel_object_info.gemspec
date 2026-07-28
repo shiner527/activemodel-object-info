@@ -41,6 +41,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'simplecov'
   spec.add_development_dependency 'yard'
   spec.metadata = {
-    'rubygems_mfa_required' => 'false',
+    'rubygems_mfa_required' => 'true',
   }
 end

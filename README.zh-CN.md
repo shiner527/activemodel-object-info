@@ -54,7 +54,7 @@ $ bundle install
 class User < ApplicationRecord
   include ActivemodelObjectInfo::Base
 
-  # 定义默认的输出配置选项
+  # 默认的输出配置选项
   INSTANCE_INFO = {
     only: [:id, :name, :status, :created_at],
     attributes: [
@@ -65,6 +65,11 @@ class User < ApplicationRecord
       { name: :virtual_field, type: :abstract, filter: ->(*) { "#{id}-#{name}" } } # 根据其他字段合成的虚拟字段
     ]
   }.freeze
+  
+  # 自定义场景输出配置（名称格式必须为 INSTANCE_INFO_场景名）
+  INSTANCE_INFO_DETAIL = {
+    only: [:id, :name, :email, :phone]
+  }.freeze
 end
 ```
 
@@ -73,13 +78,31 @@ end
 ```ruby
 user = User.first
 
-# 不传参时，默认使用模型中的 INSTANCE_INFO 常量配置
+# 1. 不传参时，默认使用模型中的 INSTANCE_INFO 常量配置
 user.instance_info 
 # => { id: 1, user_name: "John", status: "活跃", created_at: "2026-07-28", virtual_field: "1-John" }
 
-# 运行时覆盖配置（完美兼容 Ruby 2.x 的 Hash 传参和 Ruby 3.x 的关键字参数）
+# 2. 场景化输出：通过 context 参数指定场景，自动读取对应的 INSTANCE_INFO_DETAIL 常量
+user.instance_info(context: :detail)
+# => { id: 1, name: "John", email: "a@b.com", phone: "12345" }
+
+# 3. 运行时覆盖配置（完美兼容 Ruby 2.x 的 Hash 传参和 Ruby 3.x 的关键字参数）
 user.instance_info(only: [:id, :name])
 # => { id: 1, name: "John" }
+
+# 4. 嵌套输出关联对象 (Associations)
+user.instance_info(
+  only: [:id, :name],
+  includes: {
+    profile: { only: [:avatar_url, :bio] },     # has_one / belongs_to 单实例
+    roles: { only: [:role_name] }               # has_many 集合实例
+  }
+)
+# => { 
+#      id: 1, name: "John", 
+#      profile: { avatar_url: "...", bio: "..." }, 
+#      roles: [{ role_name: "admin" }, { role_name: "editor" }] 
+#    }
 ```
 
 ### 2. 数据库迁移宏 (TableDefinition)
@@ -150,6 +173,13 @@ user.soft_delete(user_id: current_user.id, refresh_updated: true)
 
 # 4. 强校验软删除 (底层调用 save!，失败时抛出异常):
 user.soft_delete!(user_id: current_user.id)
+
+# 5. 恢复已软删除的数据 (撤销软删除)：
+# 此操作会将 deleted 标记重置为 0，并清空 deleted_by 和 deleted_at
+user.restore
+
+# 6. 恢复并同时记录更新人与更新时间：
+user.restore(user_id: current_user.id, refresh_updated: true)
 ```
 
 ## 开发与测试

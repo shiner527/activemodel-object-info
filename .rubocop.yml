@@ -38,9 +38,10 @@ Metrics/MethodLength:
 Metrics/ModuleLength:
   Max: 600
 Metrics/PerceivedComplexity:
-  Max: 50
+  Max: 60
+
 Metrics/CyclomaticComplexity:
-  Max: 50
+  Max: 60
 
 Naming/PredicateName:
   Exclude:

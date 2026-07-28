@@ -1,6 +1,33 @@
 # frozen_string_literal: true
 
 module ActivemodelObjectInfo
+  # 用来测试嵌套关联对象的 Dummy 类
+  class TestProfile
+    include ActivemodelObjectInfo::Base
+    attr_accessor :avatar, :bio
+
+    def attribute_names
+      %i[avatar bio]
+    end
+
+    def attributes
+      { avatar: avatar, bio: bio }
+    end
+  end
+
+  class TestRole
+    include ActivemodelObjectInfo::Base
+    attr_accessor :name
+
+    def attribute_names
+      %i[name]
+    end
+
+    def attributes
+      { name: name }
+    end
+  end
+
   class TestBase
     include ActivemodelObjectInfo::Base
 
@@ -12,7 +39,11 @@ module ActivemodelObjectInfo
       ],
     }.freeze
 
-    attr_accessor :arg1, :arg2, :arg3, :id, :name, :deleted, :deleted_at, :deleted_by, :created_by, :created_at, :updated_by, :updated_at
+    INSTANCE_INFO_DETAIL = {
+      only: %i[id name updated_by],
+    }.freeze
+
+    attr_accessor :arg1, :arg2, :arg3, :id, :name, :deleted, :deleted_at, :deleted_by, :created_by, :created_at, :updated_by, :updated_at, :profile, :roles
 
     def attribute_names
       %i[arg1 arg2 arg3 id name deleted deleted_at deleted_by created_by created_at updated_by updated_at]
@@ -37,9 +68,9 @@ RSpec.describe ActivemodelObjectInfo::TestBase do
   describe 'Version' do
     # 验证场景：加载 Gem 时的基础版本号常量校验
     # 核心功能点：确保 Version::VERSION 被正确定义并同步到了最新版本
-    # 预期结果：版本号应严格等于 '0.4.0'
+    # 预期结果：版本号应严格等于 '0.5.0'
     it 'correct current version' do
-      expect(::ActivemodelObjectInfo::Version::VERSION).to eq('0.4.0')
+      expect(::ActivemodelObjectInfo::Version::VERSION).to eq('0.5.0')
     end
   end
 
@@ -69,6 +100,26 @@ RSpec.describe ActivemodelObjectInfo::TestBase do
         expect(info.key?(:deleted_by)).to eq(false)
         expect(info.key?(:deleted_at)).to eq(false)
         expect(info.key?(:deleted)).to eq(false)
+      end
+
+      # 验证场景：传入 context 场景参数调用 instance_info
+      # 核心功能点：触发上下文回退逻辑，优先读取 INSTANCE_INFO_#{CONTEXT} 常量
+      # 预期结果：根据 INSTANCE_INFO_DETAIL 配置，只返回 id, name, updated_by
+      it 'context options worked' do
+        info = inst.instance_info(context: :detail)
+        expect(info.keys).to contain_exactly(:id, :name, :updated_by)
+        expect(info[:id]).to eq(1000)
+        expect(info[:name]).to eq('test-name')
+      end
+
+      # 验证场景：传入不存在的 context 场景参数
+      # 核心功能点：常量获取失败时，安全回退到默认的 INSTANCE_INFO 常量
+      # 预期结果：正常返回默认的 Hash，与 default options worked 结果一致
+      it 'context fallback to default worked' do
+        info = inst.instance_info(context: :not_exist)
+        expect(info[:id]).to eq(1000)
+        expect(info[:name]).to eq('test-name')
+        expect(info[:created_at]).to be_an_instance_of(::String).and(match(full_time_reg))
       end
     end
 
@@ -196,6 +247,35 @@ RSpec.describe ActivemodelObjectInfo::TestBase do
         options = { attributes: [{ name: :xyz, type: :abstract, filter: ->(*) { id + created_by } }] }
         info = inst.instance_info(options)
         expect(info[:xyz]).to eq(1100)
+      end
+
+      # 验证场景：通过 includes 选项嵌套输出关联对象
+      # 核心功能点：验证 instance_info 能够递归调用关联对象的 instance_info 方法，并支持对关联对象传递独立的配置
+      # 预期结果：能正确输出单实例 (profile) 和集合 (roles) 的嵌套 Hash 结构
+      it 'with includes associations' do
+        inst.profile = ::ActivemodelObjectInfo::TestProfile.new.tap do |p|
+          p.avatar = 'url'
+          p.bio = 'bio info'
+        end
+        inst.roles = [
+          ::ActivemodelObjectInfo::TestRole.new.tap { |r| r.name = 'admin' },
+          ::ActivemodelObjectInfo::TestRole.new.tap { |r| r.name = 'editor' },
+        ]
+
+        options = {
+          only: %i[id name],
+          includes: {
+            profile: { only: [:avatar] },
+            roles: {},
+            invalid_assoc: {},
+          },
+        }
+        info = inst.instance_info(options)
+
+        expect(info[:id]).to eq(1000)
+        expect(info[:profile]).to eq({ avatar: 'url' })
+        expect(info[:roles]).to eq([{ name: 'admin' }, { name: 'editor' }])
+        expect(info.key?(:invalid_assoc)).to be false
       end
     end
   end
