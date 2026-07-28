@@ -32,6 +32,7 @@ module ActivemodelObjectInfo
   # @author shiner527 <shiner527@hotmail.com>
   #
   # [Changelog]
+  #   [2026-07-28] 支持关联对象嵌套输出 (includes) 与场景化输出配置 (context) (shiner527)
   #   [2026-07-28] 补充完整 YARD 文档及核心注释，重构 instance_info 签名以兼容 Ruby 3.x 关键字参数 (shiner527)
   #   [2021-04-19] 创建基础模块，提供 instance_info 数据格式化输出功能 (shiner527)
   #
@@ -175,28 +176,36 @@ module ActivemodelObjectInfo
       result.symbolize_keys!
 
       # 5. 处理嵌套关联对象 (includes)
-      if options[:includes].present? && options[:includes].is_a?(::Hash)
-        options[:includes].each do |association_name, assoc_options|
-          assoc_options = {} unless assoc_options.is_a?(::Hash)
-
-          # 安全获取关联对象
-          next unless respond_to?(association_name)
-
-          assoc_obj = __send__(association_name)
-
-          # 如果关联对象是集合 (例如 has_many)，遍历输出
-          if assoc_obj.respond_to?(:map)
-            result[association_name.to_sym] = assoc_obj.map do |item|
-              item.respond_to?(:instance_info) ? item.instance_info(**assoc_options) : item
-            end
-          # 如果关联对象是单个实例 (例如 belongs_to/has_one)
-          elsif assoc_obj.present?
-            result[association_name.to_sym] = assoc_obj.respond_to?(:instance_info) ? assoc_obj.instance_info(**assoc_options) : assoc_obj
-          end
-        end
-      end
+      format_associations!(result, options)
 
       result
+    end
+
+    private
+
+    # 处理并格式化嵌套关联对象
+    # @param [Hash] result 当前实例的输出结果散列
+    # @param [Hash] options 包含 :includes 配置的选项散列
+    def format_associations!(result, options)
+      return unless options[:includes].present? && options[:includes].is_a?(::Hash)
+
+      options[:includes].each do |association_name, assoc_options|
+        assoc_options = {} unless assoc_options.is_a?(::Hash)
+
+        # 安全获取关联对象
+        next unless respond_to?(association_name)
+
+        assoc_obj = __send__(association_name)
+
+        # 遍历处理关联对象
+        if assoc_obj.respond_to?(:map)
+          result[association_name.to_sym] = assoc_obj.map do |item|
+            item.respond_to?(:instance_info) ? item.instance_info(**assoc_options) : item
+          end
+        elsif assoc_obj.present?
+          result[association_name.to_sym] = assoc_obj.respond_to?(:instance_info) ? assoc_obj.instance_info(**assoc_options) : assoc_obj
+        end
+      end
     end
   end
 end

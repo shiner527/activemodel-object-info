@@ -4,6 +4,7 @@ module ActivemodelObjectInfo
   # 用来测试嵌套关联对象的 Dummy 类
   class TestProfile
     include ActivemodelObjectInfo::Base
+
     attr_accessor :avatar, :bio
 
     def attribute_names
@@ -17,6 +18,7 @@ module ActivemodelObjectInfo
 
   class TestRole
     include ActivemodelObjectInfo::Base
+
     attr_accessor :name
 
     def attribute_names
@@ -68,9 +70,9 @@ RSpec.describe ActivemodelObjectInfo::TestBase do
   describe 'Version' do
     # 验证场景：加载 Gem 时的基础版本号常量校验
     # 核心功能点：确保 Version::VERSION 被正确定义并同步到了最新版本
-    # 预期结果：版本号应严格等于 '0.5.0'
+    # 预期结果：版本号应严格等于 '0.4.1'
     it 'correct current version' do
-      expect(::ActivemodelObjectInfo::Version::VERSION).to eq('0.5.0')
+      expect(::ActivemodelObjectInfo::Version::VERSION).to eq('0.4.1')
     end
   end
 

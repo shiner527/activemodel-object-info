@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [0.5.0] - 2026-07-28
+## [0.4.1] - 2026-07-28
 ### Added
 - **Base**: Added support for nested output of associated objects via `includes` option.
 - **Base**: Added support for contextual formats via `context` parameter and `INSTANCE_INFO_#{CONTEXT}` constants.

@@ -33,7 +33,7 @@
 将以下代码添加到你项目中的 Gemfile 里：
 
 ```ruby
-gem 'activemodel-object-info', '~> 0.4.0'
+gem 'activemodel-object-info', '~> 0.4.1'
 ```
 
 然后执行依赖安装：

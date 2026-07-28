@@ -33,7 +33,7 @@
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'activemodel-object-info', '~> 0.4.0'
+gem 'activemodel-object-info', '~> 0.4.1'
 ```
 
 And then execute:

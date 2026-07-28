@@ -37,6 +37,7 @@ module ActivemodelObjectInfo
   # @author shiner527 <shiner527@hotmail.com>
   #
   # [Changelog]
+  #   [2026-07-28] 新增 restore 与 restore! 方法以支持软删除数据恢复 (shiner527)
   #   [2026-07-28] 补充完整 YARD 文档、行内注释，清理尾随空格 (shiner527)
   #   [2021-04-19] 创建基础模块，提供软删除与作用域注入功能 (shiner527)
   #
