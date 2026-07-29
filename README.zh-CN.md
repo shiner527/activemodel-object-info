@@ -1,34 +1,34 @@
-# Activemodel::Object::Info
+# 💎 Activemodel::Object::Info
 
-[English](README.md) | [中文文档](README.zh-CN.md)
+🌍 [English](README.md) | 🇨🇳 [中文文档](README.zh-CN.md) | 🇯🇵 [日本語](README.ja.md)
 
 **Activemodel::Object::Info** 是一个用于扩展 `ActiveModel` 和 `ActiveRecord` 的 Ruby Gem。它为日常业务开发中常见的数据输出格式化、数据库迁移中的审计追踪字段生成、以及软删除（Soft Delete）功能提供了优雅且标准化的解决方案。
 
-## 目录
+## 📖 目录
 
-- [核心特性](#核心特性)
-- [适用场景](#适用场景)
-- [安装指南](#安装指南)
-- [详细使用方法](#详细使用方法)
-  - [1. 模型数据格式化输出 (Base)](#1-模型数据格式化输出-base)
-  - [2. 数据库迁移宏 (TableDefinition)](#2-数据库迁移宏-tabledefinition)
-  - [3. 软删除机制 (DeletedOperation)](#3-软删除机制-deletedoperation)
-- [开发与测试](#开发与测试)
-- [开源协议](#开源协议)
+- [✨ 核心特性](#-核心特性)
+- [🎯 适用场景](#-适用场景)
+- [🚀 安装指南](#-安装指南)
+- [🛠 详细使用方法](#-详细使用方法)
+  - [1. 📊 模型数据格式化输出 (Base)](#1--模型数据格式化输出-base)
+  - [2. 🏗 数据库迁移宏 (TableDefinition)](#2--数据库迁移宏-tabledefinition)
+  - [3. 🗑 软删除机制 (DeletedOperation)](#3--软删除机制-deletedoperation)
+- [👨‍💻 开发与测试](#-开发与测试)
+- [📄 开源协议](#-开源协议)
 
-## 核心特性
+## ✨ 核心特性
 
 1. **模型数据格式化 (`Base`)**：安全、灵活地将 `ActiveRecord` 实例转换为 Hash（便于输出为 JSON）。支持字段白名单、黑名单、字段别名、自定义转换逻辑以及时间格式化。
 2. **数据库迁移宏 (`TableDefinition`)**：在创建数据库表时，一键生成常见的审计字段（例如 `created_by`, `updated_by`, `deleted_by`）以及配套的时间戳。
 3. **软删除机制 (`DeletedOperation`)**：基于整型标记字段的标准软删除实现，自动注入隐藏已删除数据的 `default_scope`，并在删除时强制记录操作人及时间。
 
-## 适用场景
+## 🎯 适用场景
 
 - **RESTful API 开发**：当你需要统一且高度可配置的方式，将 ActiveRecord 模型序列化为 JSON 响应并过滤掉敏感数据时。
 - **企业级 / B2B 系统后台**：业务上对数据的审计追踪（Audit Trails）要求极其严格，必须精准记录每一条数据是谁在什么时候创建、修改和删除的。
 - **数据留存要求高的系统**：严禁在数据库中执行硬删除（Destroy），要求所有的删除操作均采用软删除（Soft Delete）以备后续追溯。
 
-## 安装指南
+## 🚀 安装指南
 
 将以下代码添加到你项目中的 Gemfile 里：
 
@@ -42,9 +42,9 @@ gem 'activemodel-object-info', '~> 0.4.2'
 $ bundle install
 ```
 
-## 详细使用方法
+## 🛠 详细使用方法
 
-### 1. 模型数据格式化输出 (Base)
+### 1. 📊 模型数据格式化输出 (Base)
 
 `ActivemodelObjectInfo::Base` 模块为你的模型注入了 `instance_info` 方法。它能让你基于类中预定义的常量或运行时传入的参数，将实例对象输出为格式化的 Hash。
 
@@ -123,7 +123,7 @@ user.instance_info(
 user.instance_info(datetime_format: :date) # 全局的时间默认都会使用 :date 格式
 ```
 
-### 2. 数据库迁移宏 (TableDefinition)
+### 2. 🏗 数据库迁移宏 (TableDefinition)
 
 `ActivemodelObjectInfo::TableDefinition` 模块对 ActiveRecord 的 Migration 进行了扩展，让你能够毫不费力地生成审计字段。
 
@@ -155,7 +155,7 @@ class CreateUsers < ActiveRecord::Migration[6.1]
 end
 ```
 
-### 3. 软删除机制 (DeletedOperation)
+### 3. 🗑 软删除机制 (DeletedOperation)
 
 `ActivemodelObjectInfo::DeletedOperation` 模块提供了一套开箱即用的软删除功能，并且与 `TableDefinition` 宏生成的底层字段完美契合。
 
@@ -210,7 +210,7 @@ deleted_user.restore(user_id: current_user.id, refresh_updated: true)
 deleted_user.restore!(user_id: current_user.id)
 ```
 
-## 开发与测试
+## 👨‍💻 开发与测试
 
 克隆本仓库后，运行 `bin/setup` 安装开发依赖。
 
@@ -224,6 +224,6 @@ $ bundle exec rspec
 $ bundle exec rubocop
 ```
 
-## 开源协议
+## 📄 开源协议
 
 本项目遵循 [MIT License](https://opensource.org/licenses/MIT) 开源协议。
