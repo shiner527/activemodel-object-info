@@ -70,9 +70,9 @@ RSpec.describe ActivemodelObjectInfo::TestBase do
   describe 'Version' do
     # 验证场景：加载 Gem 时的基础版本号常量校验
     # 核心功能点：确保 Version::VERSION 被正确定义并同步到了最新版本
-    # 预期结果：版本号应严格等于 '0.4.1'
+    # 预期结果：版本号应严格等于 '0.4.2'
     it 'correct current version' do
-      expect(::ActivemodelObjectInfo::Version::VERSION).to eq('0.4.1')
+      expect(::ActivemodelObjectInfo::Version::VERSION).to eq('0.4.2')
     end
   end
 
@@ -213,6 +213,16 @@ RSpec.describe ActivemodelObjectInfo::TestBase do
         options = { attributes: [{ name: :created_at, format: '%Y/%m/%d' }] }
         info = inst.instance_info(options)
         expect(info[:created_at]).to match(%r{^\d{4}/\d{2}/\d{2}$})
+      end
+
+      # 验证场景：使用 Proc/Lambda 进行完全自定义的时间日期格式化
+      # 核心功能点：验证 format 参数接收 Proc 时，能在实例上下文中执行以自定义格式化逻辑
+      # 预期结果：时间字段被格式化为自定义的 "X年X月X日" 格式
+      it 'use proc/lambda for custom date format' do
+        custom_format_proc = ->(v) { "#{v.year}年#{v.month}月#{v.day}日" }
+        options = { attributes: [{ name: :created_at, format: custom_format_proc }] }
+        info = inst.instance_info(options)
+        expect(info[:created_at]).to match(/^\d{4}年\d{1,2}月\d{1,2}日$/)
       end
 
       # 验证场景：通过 Proc 闭包对值进行过滤处理

@@ -33,7 +33,7 @@
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'activemodel-object-info', '~> 0.4.1'
+gem 'activemodel-object-info', '~> 0.4.2'
 ```
 
 And then execute:
@@ -90,7 +90,13 @@ user.instance_info(context: :detail)
 user.instance_info(only: [:id, :name])
 # => { id: 1, name: "John" }
 
-# 4. Nested output for Associations (includes)
+# 4. Exclude specific fields (except)
+# By default, instance_info filters out deleted, deleted_by, and deleted_at.
+# You can override this behavior by passing an except array:
+user.instance_info(except: [:status, :created_at])
+# => { id: 1, user_name: "John", virtual_field: "1-John" }
+
+# 5. Nested output for Associations (includes)
 user.instance_info(
   only: [:id, :name],
   includes: {
@@ -103,6 +109,18 @@ user.instance_info(
 #      profile: { avatar_url: "...", bio: "..." }, 
 #      roles: [{ role_name: "admin" }, { role_name: "editor" }] 
 #    }
+```
+
+**Formatting Options:**
+For `Date`, `Time`, and `DateTime` fields, multiple formatting strategies are supported:
+- `format: :standard`: Keeps the original object, does not convert to string
+- `format: :full` / `:min` / `:date` / `:month` / `:year`: Uses built-in shortcut formats (e.g. `:date` outputs `%Y-%m-%d`)
+- `format: '%Y/%m/%d'`: Original strftime string
+- `format: ->(v) { "#{v.year}-#{v.month}-#{v.day}" }`: Pass a `Proc` / `Lambda` for completely custom formatting (supported since `0.4.2`)
+
+*Global Date Formatting*: In addition to specifying `format` for individual fields in the `attributes` array, you can set a global default by passing the `datetime_format` parameter:
+```ruby
+user.instance_info(datetime_format: :date) # All time fields will use the :date format by default
 ```
 
 ### 2. Migration Macros (TableDefinition)
@@ -120,16 +138,20 @@ class CreateUsers < ActiveRecord::Migration[6.1]
     create_table :users do |t|
       t.string :name
       
-      # Generates full audit suite:
-      # created_by, created_at, updated_by, updated_at, deleted(int), deleted_by, deleted_at
+      # 1. Generates full audit suite:
+      # If no arguments are passed, it generates fields for 'created', 'updated', and 'deleted' operations.
+      # Generates: created_by, created_at, updated_by, updated_at, deleted(int), deleted_by, deleted_at
+      # Note: The generated timestamp and operator fields are indexed by default (index: true).
       t.generate_operations
       
-      # Or generate specific custom audit fields:
+      # 2. Or generate specific custom audit fields:
       # Generates: audit_by (bigint), audit_at (datetime)
       t.operation_columns(:audit)
       
+      # 3. Highly customized prefixes, suffixes, and column generation control:
       # Generates: my_review_user (bigint), my_review_time (datetime)
-      t.operation_columns(:review, operator_prefix: 'my_', operator_suffix: '_user', timestamp_suffix: '_time')
+      # with_operator / with_timestamp can be used to control whether the operator or timestamp fields are generated.
+      t.operation_columns(:review, operator_prefix: 'my_', operator_suffix: '_user', timestamp_suffix: '_time', with_operator: true, with_timestamp: true)
     end
   end
 end
@@ -177,11 +199,17 @@ user.soft_delete(user_id: current_user.id, refresh_updated: true)
 user.soft_delete!(user_id: current_user.id)
 
 # 5. Restore soft-deleted record (Undelete):
+# Note: Deleted records are hidden by default_scope, so you must use unscoped to find them
+deleted_user = User.unscoped.find(1)
+
 # This resets the `deleted` flag to 0 and clears `deleted_by` and `deleted_at`
-user.restore
+deleted_user.restore
 
 # 6. Restore and refresh updated_at with user_id:
-user.restore(user_id: current_user.id, refresh_updated: true)
+deleted_user.restore(user_id: current_user.id, refresh_updated: true)
+
+# 7. Strict Restore (calls save! and raises exception on failure):
+deleted_user.restore!(user_id: current_user.id)
 ```
 
 ## Development & Testing

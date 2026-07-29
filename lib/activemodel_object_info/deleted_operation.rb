@@ -20,12 +20,22 @@ module ActivemodelObjectInfo
   #     DELETED_INVALID_VALUE = true
   #   end
   #
+  #   # 1. 默认查询过滤
   #   # 查询数据时会自动应用 default_scope: WHERE is_deleted = false
   #   User.all
   #
-  #   # 软删除一条记录（必须要传入 user_id）
+  #   # 2. 软删除记录
+  #   # 软删除一条记录（必须要传入 user_id 用于审计）
   #   user = User.find(1)
   #   user.soft_delete(user_id: current_user.id, refresh_updated: true)
+  #   # 此时 user 的 is_deleted 变为 true，同时 deleted_at, deleted_by, updated_by 都会被更新
+  #
+  #   # 3. 恢复软删除的数据
+  #   # 因为已经被软删除的数据会被 default_scope 过滤，所以需要使用 unscoped 查出
+  #   deleted_user = User.unscoped.find(1)
+  #   # 执行恢复操作，同样可以传入 user_id 记录是谁执行的恢复，并选择是否刷新 updated_at
+  #   deleted_user.restore(user_id: current_user.id, refresh_updated: true)
+  #   # 此时 user 的 is_deleted 变为 false，同时 deleted_at 和 deleted_by 会被清空，updated_by 会被更新
   #
   # 核心重要方法：
   # - {#soft_delete}：执行软删除并调用 save 更新数据。
@@ -53,8 +63,8 @@ module ActivemodelObjectInfo
 
       # 2. 注入 default_scope 默认查询作用域：如果模型拥有删除标记字段，则默认查询自动排除被标记的数据
       default_scope do
-        _current_model = try(:name).to_s.safe_constantize
-        where(deleted_field.to_sym => deleted_value_valid) if _current_model.has_attribute?(deleted_field)
+        current_model = try(:name).to_s.safe_constantize
+        where(deleted_field.to_sym => deleted_value_valid) if current_model.has_attribute?(deleted_field)
       end
 
       # 3. 定义底层的删除逻辑块 (给实例对象的内存属性赋值)

@@ -33,7 +33,7 @@
 将以下代码添加到你项目中的 Gemfile 里：
 
 ```ruby
-gem 'activemodel-object-info', '~> 0.4.1'
+gem 'activemodel-object-info', '~> 0.4.2'
 ```
 
 然后执行依赖安装：
@@ -90,7 +90,13 @@ user.instance_info(context: :detail)
 user.instance_info(only: [:id, :name])
 # => { id: 1, name: "John" }
 
-# 4. 嵌套输出关联对象 (Associations)
+# 4. 排除输出字段 (except)
+# 默认情况下，instance_info 会自动过滤掉 deleted, deleted_by, deleted_at 字段。
+# 你可以通过传入 except 数组覆盖默认行为，过滤掉你不需要的字段：
+user.instance_info(except: [:status, :created_at])
+# => { id: 1, user_name: "John", virtual_field: "1-John" }
+
+# 5. 嵌套输出关联对象 (includes)
 user.instance_info(
   only: [:id, :name],
   includes: {
@@ -103,6 +109,18 @@ user.instance_info(
 #      profile: { avatar_url: "...", bio: "..." }, 
 #      roles: [{ role_name: "admin" }, { role_name: "editor" }] 
 #    }
+```
+
+**支持的时间格式化 (`format`)：**
+对于 `Date`、`Time`、`DateTime` 类型的字段，支持以下多种格式化策略：
+- `format: :standard`：保持原生对象，不转字符串
+- `format: :full` / `:min` / `:date` / `:month` / `:year`：使用内置快捷格式，例如 `:date` 会输出 `%Y-%m-%d`
+- `format: '%Y/%m/%d'`：使用原生 strftime 字符串
+- `format: ->(v) { "#{v.year}年#{v.month}月#{v.day}日" }`：传入 `Proc` / `Lambda` 实现完全自定义格式化 (自 `0.4.2` 起支持)
+
+*全局时间格式化*：除了在 `attributes` 数组内对单一字段指定 `format` 外，你还可以通过传入 `datetime_format` 参数进行全局默认设定：
+```ruby
+user.instance_info(datetime_format: :date) # 全局的时间默认都会使用 :date 格式
 ```
 
 ### 2. 数据库迁移宏 (TableDefinition)
@@ -118,16 +136,20 @@ class CreateUsers < ActiveRecord::Migration[6.1]
       t.string :name
       
       # 1. 批量生成全套生命周期审计字段：
+      # t.generate_operations 不传参时默认生成 created, updated, deleted 三大操作相关字段。
       # 将会自动生成: created_by, created_at, updated_by, updated_at, deleted(int), deleted_by, deleted_at
+      # 注意：生成的时间戳和操作人字段默认都是带数据库索引的 (index: true)
       t.generate_operations
       
       # 2. 或者生成指定的自定义审计字段：
+      # t.operation_columns 会生成 :audit 对应的操作人(bigint)与操作时间(datetime)
       # 将会自动生成: audit_by (bigint), audit_at (datetime)
       t.operation_columns(:audit)
       
-      # 3. 甚至高度自定义前后缀：
+      # 3. 甚至高度自定义前后缀与控制字段生成：
       # 将会自动生成: my_review_user (bigint), my_review_time (datetime)
-      t.operation_columns(:review, operator_prefix: 'my_', operator_suffix: '_user', timestamp_suffix: '_time')
+      # with_operator / with_timestamp 可以分别控制是否生成对应的操作人或操作时间字段
+      t.operation_columns(:review, operator_prefix: 'my_', operator_suffix: '_user', timestamp_suffix: '_time', with_operator: true, with_timestamp: true)
     end
   end
 end
@@ -175,11 +197,17 @@ user.soft_delete(user_id: current_user.id, refresh_updated: true)
 user.soft_delete!(user_id: current_user.id)
 
 # 5. 恢复已软删除的数据 (撤销软删除)：
-# 此操作会将 deleted 标记重置为 0，并清空 deleted_by 和 deleted_at
-user.restore
+# 注意：已被软删除的数据会被 default_scope 过滤，因此需要使用 unscoped 查出
+deleted_user = User.unscoped.find(1)
+
+# 执行恢复操作，此操作会将 deleted 标记重置为 0，并清空 deleted_by 和 deleted_at
+deleted_user.restore
 
 # 6. 恢复并同时记录更新人与更新时间：
-user.restore(user_id: current_user.id, refresh_updated: true)
+deleted_user.restore(user_id: current_user.id, refresh_updated: true)
+
+# 7. 强校验恢复 (底层调用 save!，失败时抛出异常):
+deleted_user.restore!(user_id: current_user.id)
 ```
 
 ## 开发与测试

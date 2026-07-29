@@ -179,7 +179,7 @@ RSpec.describe ::ActivemodelObjectInfo::TestDeletedOperation do
       deleted_obj.restore
       expect(deleted_obj.deleted_arguments).to be_an_instance_of(::Hash)
       expect(deleted_obj.deleted_arguments[:method]).to eq(:save)
-      expect(deleted_obj.deleted_arguments[:arguments]).to eq([{ touch: false }])
+      expect(deleted_obj.deleted_arguments[:arguments]).to eq([{ touch: nil }])
       expect(deleted_obj.deleted_at).to be_nil
       expect(deleted_obj.deleted_by).to be_nil
       expect(deleted_obj.deleted).to eq(0)
@@ -216,7 +216,7 @@ RSpec.describe ::ActivemodelObjectInfo::TestDeletedOperation do
       deleted_obj.restore!
       expect(deleted_obj.deleted_arguments).to be_an_instance_of(::Hash)
       expect(deleted_obj.deleted_arguments[:method]).to eq(:save!)
-      expect(deleted_obj.deleted_arguments[:arguments]).to eq([{ touch: false }])
+      expect(deleted_obj.deleted_arguments[:arguments]).to eq([{ touch: nil }])
       expect(deleted_obj.deleted_at).to be_nil
       expect(deleted_obj.deleted_by).to be_nil
       expect(deleted_obj.deleted).to eq(0)
